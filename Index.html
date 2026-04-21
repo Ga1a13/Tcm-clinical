@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TCM Clinical Intake</title>
+  <style>
+    body { font-family: Arial; padding: 20px; max-width: 600px; margin: auto; }
+    select, button { width: 100%; padding: 10px; margin: 10px 0; }
+    .result { margin-top:20px; padding:15px; border:1px solid #ccc; }
+  </style>
+</head>
+<body>
+
+<h2>TCM Quick Intake</h2>
+
+<form id="quiz">
+
+<label>Main Complaint</label>
+<select name="main">
+  <option value="stress">Stress / mood</option>
+  <option value="fatigue">Fatigue</option>
+  <option value="pain">Pain</option>
+  <option value="digestive">Digestive</option>
+  <option value="sleep">Sleep</option>
+</select>
+
+<label>Temperature</label>
+<select name="temp">
+  <option value="cold">Cold</option>
+  <option value="heat">Heat</option>
+  <option value="neutral">Neutral</option>
+</select>
+
+<label>Energy</label>
+<select name="energy">
+  <option value="fatigue">Low energy</option>
+  <option value="normal">Normal</option>
+  <option value="yin_def">Wired but tired</option>
+</select>
+
+<label>Digestion</label>
+<select name="digestion">
+  <option value="normal">Normal</option>
+  <option value="bloating">Bloating</option>
+  <option value="loose_stools">Loose stools</option>
+  <option value="sticky_stools">Sticky stools</option>
+</select>
+
+<label>Fluids</label>
+<select name="fluids">
+  <option value="dryness">Dryness</option>
+  <option value="damp">Damp/heavy</option>
+  <option value="normal">Normal</option>
+</select>
+
+<label>Shen</label>
+<select name="shen">
+  <option value="calm">Calm</option>
+  <option value="anxiety">Anxiety</option>
+  <option value="insomnia">Insomnia</option>
+</select>
+
+<button type="submit">Analyze</button>
+
+</form>
+
+<div class="result" id="result"></div>
+
+<script>
+
+// --- FULL PATTERN ENGINE ---
+const patterns = {
+
+"Liver Qi Stagnation": {sym:{stress:3,irritability:3,bloating:2}, base:"Xiao Yao San", heat:"Jia Wei Xiao Yao San"},
+"Liver Fire": {sym:{heat:3,anger:3,headache:2}, base:"Long Dan Xie Gan Tang"},
+"Liver Yang Rising": {sym:{dizziness:3,headache:3,tinnitus:2}, base:"Tian Ma Gou Teng Yin"},
+"Liver Blood Deficiency": {sym:{dryness:2,dizziness:3,insomnia:2}, base:"Si Wu Tang"},
+
+"Heart Blood Deficiency": {sym:{insomnia:3,anxiety:2,palpitations:3}, base:"Gui Pi Tang"},
+"Heart Fire": {sym:{insomnia:3,heat:3}, base:"Dao Chi San"},
+"Phlegm Fire Harassing Heart": {sym:{anxiety:3,phlegm:2,insomnia:3}, base:"Wen Dan Tang"},
+
+"Spleen Qi Deficiency": {sym:{fatigue:3,loose_stools:3,poor_appetite:2}, base:"Si Jun Zi Tang"},
+"Spleen Yang Deficiency": {sym:{cold:3,loose_stools:3,fatigue:2}, base:"Li Zhong Wan"},
+"Spleen Qi Sinking": {sym:{fatigue:3,prolapse:3}, base:"Bu Zhong Yi Qi Tang"},
+"Damp Accumulation": {sym:{damp:3,bloating:3}, base:"Ping Wei San"},
+
+"Lung Qi Deficiency": {sym:{fatigue:2,short_breath:3}, base:"Bu Fei Tang"},
+"Lung Yin Deficiency": {sym:{dryness:3,dry_cough:3}, base:"Bai He Gu Jin Tang"},
+"Wind Cold": {sym:{cold:3,chills:2}, base:"Ma Huang Tang"},
+"Wind Heat": {sym:{heat:3,sore_throat:3}, base:"Yin Qiao San"},
+
+"Kidney Yin Deficiency": {sym:{dryness:3,insomnia:2,yin_def:3}, base:"Liu Wei Di Huang Wan", heat:"Zhi Bai Di Huang Wan"},
+"Kidney Yang Deficiency": {sym:{cold:3,fatigue:2,low_back:2}, base:"Jin Gui Shen Qi Wan"},
+
+"Blood Deficiency": {sym:{dryness:2,dizziness:3}, base:"Si Wu Tang"},
+"Blood Stasis": {sym:{pain:3,fixed_pain:3}, base:"Xue Fu Zhu Yu Tang"},
+
+"Qi Deficiency": {sym:{fatigue:3}, base:"Si Jun Zi Tang"},
+"Qi Stagnation": {sym:{bloating:3,stress:2}, base:"Yue Ju Wan"},
+
+"Phlegm Damp": {sym:{damp:3,phlegm:3}, base:"Er Chen Tang"},
+"Phlegm Heat": {sym:{phlegm:3,heat:2}, base:"Qing Qi Hua Tan Wan"},
+
+"Liver Overacting Spleen": {sym:{stress:3,bloating:3,loose_stools:2}, base:"Xiao Yao San"},
+"Heart Kidney Disharmony": {sym:{insomnia:3,anxiety:2,yin_def:2}, base:"Tian Wang Bu Xin Dan"},
+
+"Interior Heat": {sym:{heat:3}, base:"Bai Hu Tang"},
+"Interior Cold": {sym:{cold:3}, base:"Li Zhong Wan"}
+
+};
+
+// --- QUIZ LOGIC ---
+document.getElementById("quiz").onsubmit = function(e){
+  e.preventDefault();
+
+  const data = new FormData(e.target);
+  let answers = Array.from(data.values());
+
+  // normalize
+  if(answers.includes("bloating")) answers.push("distention");
+  if(answers.includes("yin_def")) answers.push("dryness");
+
+  let scores = {};
+
+  for (let p in patterns){
+    let score = 0;
+    for (let s in patterns[p].sym){
+      if (answers.includes(s)) score += patterns[p].sym[s];
+    }
+    scores[p] = score;
+  }
+
+  let sorted = Object.entries(scores).sort((a,b)=>b[1]-a[1]);
+
+  let top = sorted[0];
+  let second = sorted[1];
+
+  let output = `<b>Primary:</b> ${top[0]} (${top[1]})<br>`;
+
+  function selectFormula(p){
+    let pat = patterns[p];
+    if (answers.includes("heat") && pat.heat) return pat.heat;
+    return pat.base;
+  }
+
+  if (second[1] >= top[1]-1){
+    output += `<b>Secondary:</b> ${second[0]} (${second[1]})<br><br>`;
+    output += `<b>Strategy:</b> Combine / harmonize<br>`;
+    output += `<b>Formulas:</b><br>- ${selectFormula(top[0])}<br>- ${selectFormula(second[0])}`;
+  } else {
+    output += `<br><b>Strategy:</b> Single pattern<br>`;
+    output += `<b>Formula:</b><br>- ${selectFormula(top[0])}`;
+  }
+
+  document.getElementById("result").innerHTML = output;
+};
+
+</script>
+
+</body>
+</html>
