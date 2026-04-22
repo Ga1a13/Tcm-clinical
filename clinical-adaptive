@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Adaptive TCM Intake</title>
+<style>
+body { font-family: Arial; padding:20px; max-width:600px; margin:auto; }
+button {
+  width:100%;
+  padding:14px;
+  margin:8px 0;
+  border:none;
+  border-radius:10px;
+  background:#f2f2f2;
+  font-size:16px;
+}
+.result { margin-top:20px; padding:15px; border:1px solid #ccc; border-radius:10px; }
+</style>
+</head>
+
+<body>
+
+<h2>TCM Intake</h2>
+<div id="quiz"></div>
+<div id="result" class="result"></div>
+
+<script>
+
+let answers = [];
+
+// ---------------- QUESTION FLOW ----------------
+
+const flow = [
+
+{q:"Main issue", a:["stress","fatigue","pain","digestive","sleep"]},
+
+{q:"Temperature preference", a:["cold","hot","neutral"]},
+
+{q:"Drink temperature", a:["prefer_cold","prefer_warm","no_thirst"]},
+
+{q:"Drinking style", a:["large_amount","small_sips"]},
+
+];
+
+// Dynamic branching
+function nextStep(){
+
+  if(answers.includes("sleep") && !answers.includes("sleep_q")){
+    ask({
+      id:"sleep_q",
+      q:"Sleep pattern",
+      a:["hard_sleep","wake_night","wake_early"]
+    });
+    return;
+  }
+
+  if(answers.includes("pain") && !answers.includes("pain_q")){
+    ask({
+      id:"pain_q",
+      q:"Pain behavior",
+      a:["better_move","better_rest","sharp_fixed"]
+    });
+    return;
+  }
+
+  if(answers.includes("digestive") && !answers.includes("stool_q")){
+    ask({
+      id:"stool_q",
+      q:"Stool",
+      a:["loose","sticky","dry","normal"]
+    });
+    return;
+  }
+
+  if(!answers.includes("body_q")){
+    ask({
+      id:"body_q",
+      q:"Body feeling",
+      a:["heavy_foggy","dry_thirsty","normal"]
+    });
+    return;
+  }
+
+  if(!answers.includes("mood_q")){
+    ask({
+      id:"mood_q",
+      q:"Mood",
+      a:["irritable","anxious","calm"]
+    });
+    return;
+  }
+
+  analyze();
+}
+
+// ---------------- UI ----------------
+
+function ask(obj){
+  let html = `<h3>${obj.q}</h3>`;
+  obj.a.forEach(a=>{
+    html += `<button onclick="answer('${obj.id}','${a}')">${a.replace(/_/g," ")}</button>`;
+  });
+  document.getElementById("quiz").innerHTML = html;
+}
+
+function answer(id,val){
+  answers.push(val);
+  answers.push(id);
+  nextStep();
+}
+
+// ---------------- PATTERN ENGINE ----------------
+
+const patterns = {
+
+"Liver Qi Stagnation": {sym:{stress:3,irritable:2,better_move:2}, f:"Xiao Yao San"},
+
+"Liver Fire": {sym:{irritable:3,prefer_cold:2}, f:"Long Dan Xie Gan Tang"},
+
+"Spleen Qi Deficiency": {sym:{fatigue:3,loose:3,better_rest:2}, f:"Si Jun Zi Tang"},
+
+"Spleen Yang Deficiency": {sym:{fatigue:2,prefer_warm:2,loose:2}, f:"Li Zhong Wan"},
+
+"Damp Accumulation": {sym:{heavy_foggy:3,sticky:3}, f:"Ping Wei San"},
+
+"Phlegm Damp": {sym:{heavy_foggy:2}, f:"Er Chen Tang"},
+
+"Kidney Yin Deficiency": {sym:{wake_night:3,dry_thirsty:2}, f:"Liu Wei Di Huang Wan"},
+
+"Kidney Yang Deficiency": {sym:{fatigue:2,prefer_warm:2}, f:"Jin Gui Shen Qi Wan"},
+
+"Blood Stasis": {sym:{sharp_fixed:3}, f:"Xue Fu Zhu Yu Tang"},
+
+"Heart Fire": {sym:{hard_sleep:3,prefer_cold:2}, f:"Dao Chi San"},
+
+"Heart Blood Deficiency": {sym:{wake_early:3,anxious:2}, f:"Gui Pi Tang"}
+
+};
+
+// ---------------- ANALYSIS ----------------
+
+function analyze(){
+
+  let scores={};
+
+  for(let p in patterns){
+    let score=0;
+    for(let s in patterns[p].sym){
+      if(answers.includes(s)) score+=patterns[p].sym[s];
+    }
+    scores[p]=score;
+  }
+
+  let sorted=Object.entries(scores).sort((a,b)=>b[1]-a[1]);
+
+  let top=sorted[0];
+  let second=sorted[1];
+
+  let html=`<b>Primary Pattern:</b> ${top[0]} (${top[1]})<br>`;
+
+  if(second && second[1]>=top[1]-1){
+    html+=`<b>Secondary Pattern:</b> ${second[0]} (${second[1]})<br><br>`;
+    html+=`<b>Formulas:</b><br>- ${patterns[top[0]].f}<br>- ${patterns[second[0]].f}`;
+  } else {
+    html+=`<br><b>Formula:</b> ${patterns[top[0]].f}`;
+  }
+
+  document.getElementById("quiz").innerHTML="";
+  document.getElementById("result").innerHTML=html;
+}
+
+// start
+ask(flow[0]);
+
+</script>
+
+</body>
+</html>
