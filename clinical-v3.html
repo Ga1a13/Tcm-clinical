@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TCM Clinical Intake</title>
+<style>
+body { font-family: Arial; padding:20px; max-width:600px; margin:auto; }
+button {
+  width:100%;
+  padding:14px;
+  margin:8px 0;
+  border:none;
+  border-radius:10px;
+  background:#f2f2f2;
+  font-size:16px;
+}
+.result { margin-top:20px; padding:15px; border:1px solid #ccc; border-radius:10px; }
+</style>
+</head>
+
+<body>
+
+<h2>TCM Intake</h2>
+<div id="quiz"></div>
+<div id="result" class="result"></div>
+
+<script>
+
+const questions = [
+{q:"Energy", a:["fatigue","normal","wired_tired"]},
+
+{q:"Temperature", a:["cold","hot","neutral"]},
+
+{q:"Drink preference", a:["prefer_cold","prefer_warm","no_thirst"]},
+
+{q:"How do you drink?", a:["large_amount","small_sips"]},
+
+{q:"Sleep", a:["hard_sleep","wake_night","wake_early"]},
+
+{q:"Pain", a:["better_move","better_rest","sharp_fixed","no_pain"]},
+
+{q:"Stool", a:["normal","loose","sticky","dry","alternating"]},
+
+{q:"Body feeling", a:["heavy_foggy","dry_thirsty","normal"]},
+
+{q:"Mood", a:["irritable","anxious","calm"]}
+];
+
+let answers=[];
+
+function render(i){
+  let q=questions[i];
+  let html=`<h3>${q.q}</h3>`;
+  q.a.forEach(a=>{
+    html+=`<button onclick="select(${i},'${a}')">${a.replace(/_/g," ")}</button>`;
+  });
+  document.getElementById("quiz").innerHTML=html;
+}
+
+function select(i,val){
+  answers[i]=val;
+  if(i<questions.length-1) render(i+1);
+  else analyze();
+}
+
+const patterns={
+
+"Liver Qi Stagnation": {sym:{irritable:3,better_move:2}, base:"Xiao Yao San"},
+
+"Liver Fire": {sym:{prefer_cold:2,irritable:3}, base:"Long Dan Xie Gan Tang"},
+
+"Spleen Qi Deficiency": {sym:{fatigue:3,loose:3}, base:"Si Jun Zi Tang"},
+
+"Spleen Yang Deficiency": {sym:{fatigue:2,prefer_warm:2,loose:2}, base:"Li Zhong Wan"},
+
+"Damp Accumulation": {sym:{heavy_foggy:3,sticky:3}, base:"Ping Wei San"},
+
+"Phlegm Damp": {sym:{heavy_foggy:3}, base:"Er Chen Tang"},
+
+"Kidney Yin Deficiency": {sym:{wake_night:3,dry_thirsty:2}, base:"Liu Wei Di Huang Wan"},
+
+"Kidney Yang Deficiency": {sym:{fatigue:2,prefer_warm:2}, base:"Jin Gui Shen Qi Wan"},
+
+"Blood Stasis": {sym:{sharp_fixed:3}, base:"Xue Fu Zhu Yu Tang"},
+
+"Heart Fire": {sym:{hard_sleep:3,prefer_cold:2}, base:"Dao Chi San"},
+
+"Heart Blood Deficiency": {sym:{wake_early:3,anxious:2}, base:"Gui Pi Tang"}
+
+};
+
+function analyze(){
+
+  let scores={};
+
+  for(let p in patterns){
+    let score=0;
+    for(let s in patterns[p].sym){
+      if(answers.includes(s)) score+=patterns[p].sym[s];
+    }
+    scores[p]=score;
+  }
+
+  let sorted=Object.entries(scores).sort((a,b)=>b[1]-a[1]);
+
+  let top=sorted[0];
+  let second=sorted[1];
+
+  let html=`<b>Primary:</b> ${top[0]}<br>`;
+
+  if(second[1]>=top[1]-1){
+    html+=`<b>Secondary:</b> ${second[0]}<br><br>`;
+    html+=`<b>Formulas:</b><br>- ${patterns[top[0]].base}<br>- ${patterns[second[0]].base}`;
+  } else {
+    html+=`<br><b>Formula:</b> ${patterns[top[0]].base}`;
+  }
+
+  document.getElementById("quiz").innerHTML="";
+  document.getElementById("result").innerHTML=html;
+}
+
+render(0);
+
+</script>
+
+</body>
+</html>
